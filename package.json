@@ -4,11 +4,20 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@graphql-tools/merge": "^9.0.4",
+    "@graphql-tools/schema": "^10.0.4",
+    "apollo": "^2.34.0",
+    "apollo-server-express": "^3.13.0",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.17.1",
     "express-graphql": "^0.12.0",
     "graphql": "^15.5.0",
+    "graphql-subscriptions": "^2.0.0",
+    "graphql-ws": "^5.16.0",
     "mongoose": "^5.11.15",
-    "nodemon": "^2.0.7"
+    "nodemon": "^2.0.7",
+    "subscriptions-transport-ws": "^0.11.0",
+    "ws": "^8.18.0"
   }
 }

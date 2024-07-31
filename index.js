@@ -1,25 +1,62 @@
 const express = require("express");
-const { graphqlHTTP } = require("express-graphql");
-const mongoose = require("mongoose");
-const { schema, root } = require("./schema/slotSchema");
 const cors = require("cors");
+const http = require("http");
+const { ApolloServer } = require("apollo-server-express");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const typeDefs = require("./schemas");
+const resolvers = require("./resolvers");
+const connectDB = require("./config/db");
+const { WebSocketServer } = require("ws");
+const { useServer } = require("graphql-ws/lib/use/ws");
+require("dotenv").config();
 
-// Connect to MongoDB
-mongoose.connect(
-  "mongodb+srv://gokul:admin@cluster0.n6pnmbc.mongodb.net/bookings"
-);
+const startServer = async () => {
+  const app = express();
+  app.use(cors());
 
-const app = express();
-app.use(cors());
-app.use(
-  "/graphql",
-  graphqlHTTP({
-    schema: schema,
-    rootValue: root,
-    graphiql: true,
-  })
-);
+  const httpServer = http.createServer(app);
 
-app.listen(4000, () => {
-  console.log("Server is running on http://localhost:4000/graphql");
-});
+  const schema = makeExecutableSchema({
+    typeDefs,
+    resolvers,
+  });
+
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: "/graphql",
+  });
+
+  const wsServerCleanup = useServer({ schema }, wsServer);
+
+  const apolloServer = new ApolloServer({
+    schema,
+    context: ({ req, res }) => ({ req, res }),
+    plugins: [
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              wsServerCleanup.dispose();
+            },
+          };
+        },
+      },
+    ],
+  });
+
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app });
+
+  const PORT = process.env.PORT || 4000;
+  httpServer.listen(PORT, () => {
+    console.log(
+      `🚀 Server ready at http://localhost:${PORT}${apolloServer.graphqlPath}`
+    );
+    console.log(
+      `🚀 Subscriptions ready at ws://localhost:${PORT}${apolloServer.graphqlPath}`
+    );
+  });
+};
+
+connectDB();
+startServer();
